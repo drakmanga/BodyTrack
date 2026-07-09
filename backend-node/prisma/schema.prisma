@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           BigInt   @id @default(autoincrement())
+  username     String   @unique @db.VarChar(100)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  profiles Profile[]
+
+  @@map("users")
+}
+
+model Profile {
+  id          BigInt   @id @default(autoincrement())
+  accountId   BigInt   @map("account_id")
+  displayName String   @map("display_name") @db.VarChar(100)
+  isPrimary   Boolean  @default(false) @map("is_primary")
+  heightCm    Decimal? @map("height_cm") @db.Decimal(5, 2)
+  wristCm     Decimal? @map("wrist_cm") @db.Decimal(5, 2)
+  sex         String?  @db.VarChar(10)
+  unitSystem  String   @default("METRIC") @map("unit_system") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  account           User               @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  metricDefinitions MetricDefinition[]
+  measurements      Measurement[]
+  progressPhotos    ProgressPhoto[]
+
+  @@index([accountId], map: "idx_profiles_account")
+  @@map("profiles")
+}
+
+model MetricDefinition {
+  id           BigInt  @id @default(autoincrement())
+  profileId    BigInt  @map("profile_id")
+  name         String  @db.VarChar(100)
+  unit         String  @db.VarChar(20)
+  displayOrder Int     @default(0) @map("display_order")
+  isActive     Boolean @default(true) @map("is_active")
+  howToMeasure String? @map("how_to_measure")
+
+  profile Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  values  MeasurementValue[]
+
+  @@unique([profileId, name], map: "uq_metric_definitions_profile_name")
+  @@index([profileId], map: "idx_metric_definitions_profile")
+  @@map("metric_definitions")
+}
+
+model Measurement {
+  id              BigInt   @id @default(autoincrement())
+  profileId       BigInt   @map("profile_id")
+  measurementDate DateTime @map("measurement_date") @db.Date
+  note            String?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  profile        Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  values         MeasurementValue[]
+  progressPhotos ProgressPhoto[]
+
+  @@unique([profileId, measurementDate], map: "uq_measurements_profile_date")
+  @@index([profileId, measurementDate], map: "idx_measurements_profile_date")
+  @@map("measurements")
+}
+
+model MeasurementValue {
+  id                 BigInt  @id @default(autoincrement())
+  measurementId      BigInt  @map("measurement_id")
+  metricDefinitionId BigInt  @map("metric_definition_id")
+  value              Decimal @db.Decimal(10, 2)
+
+  measurement      Measurement      @relation(fields: [measurementId], references: [id], onDelete: Cascade)
+  metricDefinition MetricDefinition @relation(fields: [metricDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([measurementId, metricDefinitionId], map: "uq_measurement_values_measurement_metric")
+  @@index([measurementId, metricDefinitionId], map: "idx_measurement_values_measurement_metric")
+  @@map("measurement_values")
+}
+
+model ProgressPhoto {
+  id            BigInt   @id @default(autoincrement())
+  profileId     BigInt   @map("profile_id")
+  measurementId BigInt?  @map("measurement_id")
+  photoDate     DateTime @map("photo_date") @db.Date
+  filePath      String   @map("file_path") @db.VarChar(500)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  profile     Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  measurement Measurement? @relation(fields: [measurementId], references: [id], onDelete: SetNull)
+
+  @@index([profileId, photoDate], map: "idx_progress_photos_profile_date")
+  @@map("progress_photos")
+}

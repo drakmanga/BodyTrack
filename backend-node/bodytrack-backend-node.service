@@ -1,0 +1,16 @@
+[Unit]
+Description=BodyTrack backend (Node/Fastify)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/bodytrack/backend-node
+ExecStart=/usr/bin/node dist/server.js
+EnvironmentFile=/root/bodytrack/backend-node/.env.production
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target
