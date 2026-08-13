@@ -1,76 +1,83 @@
 # BodyTrack
 
-Servizio self-hosted per il tracking di misurazioni fisiche (peso, misure corporee configurabili, corporatura/peso ideale) con grafici storici, foto di progresso e supporto multi-profilo (più persone sullo stesso account).
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![PWA](https://img.shields.io/badge/PWA-ready-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
+
+Self-hosted service for tracking physical measurements (weight, configurable body measurements, frame size/ideal weight) with historical charts, progress photos, and multi-profile support (multiple people on the same account).
 
 ## Stack
 
 - **Backend**: Node.js + Fastify + TypeScript + Prisma, in `backend-node/`
 - **Database**: PostgreSQL 16
 - **Frontend**: React 19 + Vite + Tailwind CSS v4 + Recharts + React Router, PWA (manifest + service worker), in `frontend/`
-- **Deploy**: systemd (backend) + Nginx come reverse proxy e file statici (frontend), stessa origine (niente CORS in produzione)
+- **Deploy**: systemd (backend) + Nginx as reverse proxy and static file server (frontend), same origin (no CORS in production)
 
-## Setup locale (sviluppo)
+## Local setup (development)
 
-Requisiti: Node.js 20+, Docker (per Postgres) o un'istanza Postgres 16 già disponibile.
+Requirements: Node.js 20+, Docker (for Postgres) or an already-available Postgres 16 instance.
 
 ```bash
-# 1. Avvia Postgres per lo sviluppo
+# 1. Start Postgres for development
 docker compose up -d
 
 # 2. Backend
 cd backend-node
-cp .env.example .env   # valorizza le variabili, vedi sotto
+cp .env.example .env   # fill in the variables, see below
 npm install
 npx prisma migrate deploy
 npm run dev             # http://localhost:8081
 
-# 3. Frontend (in un altro terminale)
+# 3. Frontend (in another terminal)
 cd frontend
 npm install
 npm run dev              # http://localhost:5173
 ```
 
-In sviluppo, Vite fa da proxy delle chiamate `/api/**` verso il backend (vedi `frontend/vite.config.js`), quindi vanno avviati entrambi. Assicurati che `CORS_ALLOWED_ORIGIN` sul backend corrisponda esattamente all'origine da cui apri il frontend nel browser.
+In development, Vite proxies `/api/**` calls to the backend (see `frontend/vite.config.js`), so both need to be running. Make sure `CORS_ALLOWED_ORIGIN` on the backend matches exactly the origin you open the frontend from in the browser.
 
-### Build di produzione
+### Production build
 
 ```bash
 cd backend-node && npm run build     # tsc -> dist/
-cd frontend && npm run build          # genera frontend/dist
+cd frontend && npm run build          # generates frontend/dist
 ```
 
-## Variabili d'ambiente (backend-node/.env)
+## Environment variables (backend-node/.env)
 
-| Variabile | Descrizione |
+| Variable | Description |
 |---|---|
-| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | Connessione Postgres |
-| `JWT_SECRET` | Chiave HMAC per firma JWT, min. 32 byte. Genera con `openssl rand -base64 48` |
-| `JWT_EXPIRATION_MINUTES` | Durata del token JWT in minuti |
-| `CORS_ALLOWED_ORIGIN` | Origine consentita per CORS (una sola, no wildcard) |
-| `PHOTOS_STORAGE_PATH` | Percorso su cui salvare le foto di progresso |
-| `SERVER_PORT` | Porta HTTP del backend |
+| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | Postgres connection |
+| `JWT_SECRET` | HMAC key for signing JWTs, min. 32 bytes. Generate with `openssl rand -base64 48` |
+| `JWT_EXPIRATION_MINUTES` | JWT token duration in minutes |
+| `CORS_ALLOWED_ORIGIN` | Allowed CORS origin (single value, no wildcard) |
+| `PHOTOS_STORAGE_PATH` | Path where progress photos are stored |
+| `SERVER_PORT` | Backend HTTP port |
 
-Copia sempre `.env.example` in `.env` e valorizza — **non committare mai `.env`**.
+Always copy `.env.example` to `.env` and fill it in — **never commit `.env`**.
 
-## Deploy in produzione
+## Production deployment
 
-Setup di riferimento: container LXC Debian su Proxmox, backend gestito da systemd, frontend statico servito da Nginx che fa anche da reverse proxy verso il backend (stessa origine, niente CORS). Una containerizzazione Docker completa per il nuovo backend Node non è ancora stata fatta — `docker-compose.yml` in questa repo copre solo Postgres per lo sviluppo locale.
+Reference setup: Debian LXC container on Proxmox, backend managed by systemd, static frontend served by Nginx which also acts as reverse proxy to the backend (same origin, no CORS). A full Docker containerization for the new Node backend hasn't been done yet — `docker-compose.yml` in this repo only covers Postgres for local development.
 
-### 1. Prerequisiti sul server
+### 1. Server prerequisites
 
 ```bash
 # Node.js 20+
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 apt install -y nodejs
 
-# PostgreSQL 16 e Nginx
+# PostgreSQL 16 and Nginx
 apt install -y postgresql nginx
 
-sudo -u postgres createuser bodytrack -P   # imposta una password
+sudo -u postgres createuser bodytrack -P   # set a password
 sudo -u postgres createdb bodytrack -O bodytrack
 ```
 
-### 2. Clona ed esegui il build
+### 2. Clone and build
 
 ```bash
 git clone https://github.com/drakmanga/BodyTrack.git /root/bodytrack
@@ -78,31 +85,31 @@ cd /root/bodytrack
 
 # Backend
 cd backend-node
-cp .env.example .env.production   # valorizza DB_*, JWT_SECRET (openssl rand -base64 48), CORS_ALLOWED_ORIGIN, PHOTOS_STORAGE_PATH
+cp .env.example .env.production   # fill in DB_*, JWT_SECRET (openssl rand -base64 48), CORS_ALLOWED_ORIGIN, PHOTOS_STORAGE_PATH
 npm install
-npx prisma migrate deploy          # crea/aggiorna lo schema sul DB
+npx prisma migrate deploy          # creates/updates the DB schema
 npm run build                      # tsc -> dist/
 
 # Frontend
 cd ../frontend
 npm install
-npm run build                      # genera frontend/dist
+npm run build                      # generates frontend/dist
 ```
 
-### 3. Backend come servizio systemd (avvio automatico al boot)
+### 3. Backend as a systemd service (auto-start on boot)
 
-Il repo include già l'unit file in `backend-node/bodytrack-backend-node.service`:
+The repo already includes the unit file at `backend-node/bodytrack-backend-node.service`:
 
 ```bash
 cp /root/bodytrack/backend-node/bodytrack-backend-node.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now bodytrack-backend-node   # abilita all'avvio + parte subito
-systemctl status bodytrack-backend-node          # verifica che sia "active (running)"
+systemctl enable --now bodytrack-backend-node   # enable on boot + start now
+systemctl status bodytrack-backend-node          # verify it's "active (running)"
 ```
 
-L'unit file assume `WorkingDirectory=/root/bodytrack/backend-node` ed `EnvironmentFile=/root/bodytrack/backend-node/.env.production` — se clonate altrove, aggiornate questi due percorsi nel file prima di copiarlo.
+The unit file assumes `WorkingDirectory=/root/bodytrack/backend-node` and `EnvironmentFile=/root/bodytrack/backend-node/.env.production` — if you clone elsewhere, update these two paths in the file before copying it.
 
-### 4. Frontend statico + Nginx come reverse proxy
+### 4. Static frontend + Nginx as reverse proxy
 
 ```bash
 mkdir -p /var/www/bodytrack
@@ -110,7 +117,7 @@ cp -r /root/bodytrack/frontend/dist/* /var/www/bodytrack/
 chown -R www-data:www-data /var/www/bodytrack
 ```
 
-Config Nginx (`/etc/nginx/sites-available/bodytrack`):
+Nginx config (`/etc/nginx/sites-available/bodytrack`):
 
 ```nginx
 server {
@@ -121,7 +128,7 @@ server {
     index index.html;
 
     location /api/ {
-        client_max_body_size 11m;   # deve superare il limite upload foto lato app (10MB)
+        client_max_body_size 11m;   # must exceed the app-level photo upload limit (10MB)
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -140,25 +147,25 @@ server {
 
 ```bash
 ln -s /etc/nginx/sites-available/bodytrack /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default   # opzionale, evita conflitti sulla porta 80
+rm -f /etc/nginx/sites-enabled/default   # optional, avoids conflicts on port 80
 nginx -t && systemctl enable --now nginx && systemctl reload nginx
 ```
 
-`SERVER_PORT` nel `.env.production` del backend deve corrispondere alla porta usata in `proxy_pass` (8080 in questo esempio).
+`SERVER_PORT` in the backend's `.env.production` must match the port used in `proxy_pass` (8080 in this example).
 
-### 5. Verifica
+### 5. Verify
 
 ```bash
-curl http://localhost/actuator/health   # deve rispondere OK
+curl http://localhost/actuator/health   # should respond OK
 ```
 
-Poi apri l'IP/dominio del server nel browser: dovresti vedere la pagina di login/registrazione.
+Then open the server's IP/domain in a browser: you should see the login/registration page.
 
-### 6. Redeploy dopo modifiche
+### 6. Redeploy after changes
 
 - **Backend**: `cd backend-node && npm run build && systemctl restart bodytrack-backend-node`
-- **Frontend**: `cd frontend && rm -rf dist && npm run build`, poi **`rm -rf /var/www/bodytrack/*`** (importante: Vite genera nomi file con hash del contenuto, i bundle vecchi si accumulano se non si svuota prima), quindi `cp -r dist/* /var/www/bodytrack/`, `chown -R www-data:www-data /var/www/bodytrack`, `systemctl reload nginx`.
+- **Frontend**: `cd frontend && rm -rf dist && npm run build`, then **`rm -rf /var/www/bodytrack/*`** (important: Vite generates content-hashed filenames, so old bundles pile up if you don't clear the directory first), then `cp -r dist/* /var/www/bodytrack/`, `chown -R www-data:www-data /var/www/bodytrack`, `systemctl reload nginx`.
 
-## Licenza
+## License
 
-MIT — vedi [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
