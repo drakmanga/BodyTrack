@@ -9,7 +9,7 @@ const PERIODS = [
 ];
 
 export default function StatsSection({ metrics, unitSystem, profile, dataVersion }) {
-  const [period, setPeriod] = useState('90d');
+  const [period, setPeriod] = useState('all');
   const [insufficientIds, setInsufficientIds] = useState(() => new Set());
   const [showInsufficient, setShowInsufficient] = useState(false);
 

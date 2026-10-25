@@ -83,6 +83,7 @@ export async function history(
 export interface MetricSummary {
   current: Prisma.Decimal | null;
   delta: Prisma.Decimal | null;
+  deltaAbsolute: Prisma.Decimal | null;
   min: Prisma.Decimal | null;
   max: Prisma.Decimal | null;
   average: Prisma.Decimal | null;
@@ -105,7 +106,7 @@ export async function summary(
   });
 
   if (rows.length === 0) {
-    return { current: null, delta: null, min: null, max: null, average: null, dataPointCount: 0 };
+    return { current: null, delta: null, deltaAbsolute: null, min: null, max: null, average: null, dataPointCount: 0 };
   }
 
   const values = rows.map((r) => r.value);
@@ -121,5 +122,21 @@ export async function summary(
   }
   const average = sum.dividedBy(values.length).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 
-  return { current, delta, min, max, average, dataPointCount: values.length };
+  // Absolute delta is always vs. the very first measurement ever taken for this
+  // metric, regardless of the selected period's date range - unlike `delta`
+  // above, which is scoped to the period.
+  const everCount = await prisma.measurementValue.count({
+    where: { metricDefinitionId: metricId, measurement: { profileId } },
+  });
+  let deltaAbsolute: Prisma.Decimal | null = null;
+  if (everCount >= 2) {
+    const firstEver = await prisma.measurementValue.findFirst({
+      where: { metricDefinitionId: metricId, measurement: { profileId } },
+      orderBy: { measurement: { measurementDate: "asc" } },
+      select: { value: true },
+    });
+    if (firstEver) deltaAbsolute = current.minus(firstEver.value);
+  }
+
+  return { current, delta, deltaAbsolute, min, max, average, dataPointCount: values.length };
 }

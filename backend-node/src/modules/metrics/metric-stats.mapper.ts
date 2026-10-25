@@ -13,6 +13,7 @@ export function mapSummary(summary: MetricSummary) {
   return {
     current: toNumberOrNull(summary.current),
     delta: toNumberOrNull(summary.delta),
+    deltaAbsolute: toNumberOrNull(summary.deltaAbsolute),
     min: toNumberOrNull(summary.min),
     max: toNumberOrNull(summary.max),
     average: toNumberOrNull(summary.average),

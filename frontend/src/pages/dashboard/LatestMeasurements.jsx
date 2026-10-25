@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { listMeasurements } from '../../api/measurements';
+import { getSummary } from '../../api/metrics';
 import { formatMeasurement } from '../../utils/units';
 import { formatDateDisplay } from '../../utils/date';
 import Skeleton from '../../components/Skeleton';
@@ -36,6 +37,7 @@ function computeLatestForMetric(measurements, metricId) {
 
 export default function LatestMeasurements({ metrics, unitSystem, profile, dataVersion, onDataChanged }) {
   const [measurements, setMeasurements] = useState(null);
+  const [deltaAbsoluteByMetric, setDeltaAbsoluteByMetric] = useState({});
   const [detailMetric, setDetailMetric] = useState(null);
 
   useEffect(() => {
@@ -48,6 +50,18 @@ export default function LatestMeasurements({ metrics, unitSystem, profile, dataV
       cancelled = true;
     };
   }, [dataVersion]);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(metrics.map((m) => getSummary(m.id).then((s) => [m.id, s.deltaAbsolute]))).then((entries) => {
+      if (cancelled) return;
+      setDeltaAbsoluteByMetric(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metrics, dataVersion]);
 
   if (measurements === null) {
     return (
@@ -76,6 +90,7 @@ export default function LatestMeasurements({ metrics, unitSystem, profile, dataV
         {metrics.map((metric) => {
         const { latest, previous, sparklineValues } = computeLatestForMetric(measurements, metric.id);
         const delta = latest && previous ? latest.value - previous.value : null;
+        const deltaAbsolute = deltaAbsoluteByMetric[metric.id] ?? null;
         return (
           <div
             key={metric.id}
@@ -108,6 +123,15 @@ export default function LatestMeasurements({ metrics, unitSystem, profile, dataV
                     </span>
                   )}
                 </p>
+                {deltaAbsolute !== null && (
+                  <p className="text-xs text-stone-400">
+                    Totale:
+                    <span className={deltaAbsolute < 0 ? 'text-teal-600 dark:text-teal-400 ml-1' : deltaAbsolute > 0 ? 'text-amber-600 dark:text-amber-400 ml-1' : 'ml-1'}>
+                      {deltaAbsolute > 0 ? '↑' : deltaAbsolute < 0 ? '↓' : '='}
+                      {Math.abs(deltaAbsolute).toFixed(1)}
+                    </span>
+                  </p>
+                )}
                 <Sparkline points={sparklineValues} />
               </>
             ) : (

@@ -16,7 +16,7 @@ const PERIODS = [
 ];
 
 export default function MetricDetailModal({ metric, metrics, unitSystem, profile, dataVersion, onClose, onDataChanged }) {
-  const [period, setPeriod] = useState('90d');
+  const [period, setPeriod] = useState('all');
   const [measurements, setMeasurements] = useState(null);
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);

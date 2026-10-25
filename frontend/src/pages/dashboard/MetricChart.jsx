@@ -82,7 +82,12 @@ export default function MetricChart({ metric, period, unitSystem, profile, dataV
               </span>
               {summary.delta !== null && (
                 <span className={summary.delta < 0 ? 'text-teal-600 dark:text-teal-400' : summary.delta > 0 ? 'text-amber-600 dark:text-amber-400' : ''}>
-                  Delta: {summary.delta > 0 ? '+' : ''}{summary.delta.toFixed(1)} {metric.unit}
+                  Delta periodo: {summary.delta > 0 ? '+' : ''}{summary.delta.toFixed(1)} {metric.unit}
+                </span>
+              )}
+              {summary.deltaAbsolute !== null && (
+                <span className={summary.deltaAbsolute < 0 ? 'text-teal-600 dark:text-teal-400' : summary.deltaAbsolute > 0 ? 'text-amber-600 dark:text-amber-400' : ''}>
+                  Delta totale: {summary.deltaAbsolute > 0 ? '+' : ''}{summary.deltaAbsolute.toFixed(1)} {metric.unit}
                 </span>
               )}
               <span>Min: {formatMeasurement(summary.min, metric.unit, unitSystem)}</span>
